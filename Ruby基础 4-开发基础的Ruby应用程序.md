@@ -254,13 +254,120 @@ scan方法是搜索所有文字数字字符块的,因此得到句子中有7个�
 
 ### 找出"有趣的"句子进行汇总
 要开发自己的汇总功能,最简单的方法之一是用特定条件对文句进行扫描
-扫描方法之一是查找具备平均长度且包含名词的文句.短句不太可能包含有用的内容,长句又太长不便汇总.能够可靠地找到名词的系统远远超出了本书的范围,因此你可以"取巧",只查找能够指示该句中有用名词出现的字词,例如"is"和"are"
+扫描方法之一是查找具备平均长度且包含名词的文句.短句不太可能包含有用的内容,长句又太长不便汇总.能够可靠地找到名词的系统远远超出了本书的范围,因此你可以"取巧",只查找能够指示该句中有用名词出现的字词,例如"is"和"are".
 
+为了便于开发,我们从零开始创建一个新程序,随后把代码逻辑转移到主程序中,请创建名为"aummarize.rb"的新程序,并输入一下代码:
 
+    text =%q{
+      Ruby is a great programming language.It is object oriented and has many groovy features.Some people don't like it,but that's not our problem!It's easy to learn.It's great.To learn more about Ruby,visit the official Ruby Web site today.
+    }
 
+    sentences = text.gsub(/\s+/,' ').strip.split(/\.|\?|\!/)
+    sentences_sorted = sentences.sort_by{|sentence|sentence.length}
+    one_third = sentences_sorted.length / 3
+    ideal_sentences = sentences_sorted.slice(one_third, one_third +1)
+    ideal_sentences = ideal_sentences.select{|sentence|sentence =~ /is|are/}
+    puts ideal_sentences.join(".")
 
+似乎很成功！我们仔细来看这段程序.
 
+首先,定义变量text,用以保存有多个文句的长字符串,这与analyzer.rb很相似.然后把text变量切分到文句数组中,如下:
+`sentences = text.gsub(/\s+/, ' ').strip.split(/\.|\?|!/)`
 
+这里与analyzer.rb所用的方法略有不同,在调用链中有个额外的gsub方法,以及strip方法.gsub方法是去掉所有大块空白,代之以单个空白(`\s+表示"一个或多个空白字符"`),这是为了美化的目的.strip方法则是去掉字符串开头和结尾的所有额外空白,然后与分析器程序一样,用split方法进行同样的处理.
 
+下一步根据文句的长度,对文句数组排序,因为想忽略最短的1/3和最长的1/3:
+`sentence_sorted = sentences.sort_by{|sentence| sentence.length}`
 
+数组和散列表都有sort_by方法,可用于你希望的任意顺序重排其中的元素.sort_by方法接受代码块参数,该代码块是个表达式,定义了排序的依据.在本例中,是对sentences数组进行排序,把每个文句放到sentence变量中,并调用其length方法,以便根据其长度排序.这一行代码执行后,sentences_sorted变量即包含按长度排序的文句.
+
+下一步需要从sentences_sorted变量的按长度排序文句中,得到中间的1/3,因为这1/3是你认为可能最有趣的内容.为了实现这一目的,可把数组的长度除以3,得到1/3的元素个数,然后从数组的1/3处开始抓取:
+
+    one_third = sentences_sorted.length / 3
+    ideal_sentences = sentences_sorted.slice(one_third, one_third +1)
+
+###### 注: 额外抓取一个元素,以便弥补整数除法导致的舍入.
+
+第一行取得数组的长度,并且除以3,得到"1/3数组"的数量.第二行用slice方法把数组的一段内容"切出来",并赋值给ideal_sentences变量.
+倒数第二行代码则对文句进行检查,看它是否包含"is"或"are",并只接受满足这一条件的文句:
+`ideal_sentences = ideal_sentences.select {|sentence| sentence =~ /is|are/}`
+这里使用了select方法,和上节去除"虚词"的代码一样,代码块中的表达式使用了正则表达式,对sentence变量进行匹配,仅当sentence中有"is"或"are"时才返回true的值.这表示ideal_sentences数组现在只包含长度适中,是中间的1/3,且包含"is"或"are"的文句.
+
+最后一行代码只是把ideal_sentences数组的内容链接起来,形成单个字符串,用句号和空白分隔,以便阅读:
+`puts ideal_sentences.join(". ")`
+
+###分析text.txt之外的其他文件
+目前,城市是吧text.txt文件名写死在代码中,这种方法可以接受,但是如果能再运行程序时制定要分析处理哪个文件,则会好得多.
+
+###### 注: 如果在命令行或shell中运行analyzer.rb的话,例如:在Mac或Linux中.这种方法只是用来演示,如果在Windows中使用IDE开发环境,那么本节内容只需要读读就可以了.不需要亲自动手尝试.
+
+一般情况下,如果从命令行启动程序,可以把参数加到命令末尾,程序将会处理这些参数.对于Ruby程序也可以这么做.
+
+在启动Ruby程序时,Ruby把命令行末尾的参数自动放到特定的ARGV数组中.如果想要验证一下,请创建一个新的脚本文件,取名为argv.rb,并在其中输入如下代码:
+`puts ARGV.join('-')`
+
+命令行输入:`ruby argv.rb`,结果是空白,然后再试试下面的命令`ruby argv.rb test 123`
+
+可以用这样的方法,把analyzer.rb文件中的`text.txt`替换成`ARGV[0]`或者ARGV.first(两者意思完全相同--都是指ARGV数组的第一个元素).这样一来,读取文件的代码行就变成下面这个样子:
+`lines = File.readlines(ARGV[0])`       
+要处理`text.txt`,得用下面这样的命令:
+`ruby analyzer.rb text.txt`
+关于程序的部署方法,怎样让程序对用户更加友好,以及ARGV的使用方法,我们将在第十章学到!
+
+## 4.4 完整的程序
+我们已经有了这个基础程序的完整源代码,但现在应该从前几节中,把所有新增的扩展功能放到`analyzer.rb`文件中,生成这个文本分析器的最终版本.
+
+###### 注: 请记住,本书的所有源代码均可以从`http://www.apress.com`网站的SourceCode/Download功能区获得,因此不必严格要求直接输入书中的代码.
+
+以下是所有代码:
+
+        #analyzer.rb --Text Analyzer
+        stop_words = %w{the a by on for of are with just but and to the my I has some in}
+        lines = File.readlines(ARGV.first)
+        line_count = lines.size
+        text = lines.join
+
+        #Count the characters
+        character_count = text.length
+        character_count_nospaces = text.gsub(/\s+/,' ').length
+
+        #Count the words, sentences, and paragraphs
+        word_count = text.split.length
+        paragraph_count = text.split(/\n\n/).length
+        sentence_count = text.split(/\.|\?|!/).length
+
+        #Make a list of words in the text that aren't stop words,
+        #count them, and work out the percentage of non-stop words
+        #against all words
+        all_words = text.scan(/\w+/)
+        good_words = all_words.select{|word| !stop_words.include?(word)}
+        good_percentage = ((good_words.length.to_f / all_words.length.to_f) * 100).to_i
+
+        #Summarize the text by cherry picking some choice sentences
+        sentences = text.gsub(/\s+/, ' ').strip.split(/\.|\?|\!/)
+        sentences_sorted = sentences.sort_by{|sentence| sentence.length}
+        one_third = sentences_sorted.length / 3
+        ideal_sentences = sentences_sorted.slice(one_third, one_third +1)
+        ideal_sentences = ideal_sentences.select {|sentence| sentence =~ /is|are/}
+
+        #Give the analysis back to the user
+        puts "#{line_count}lines"
+        puts "#{character_count}characters"
+        puts "#{character_count_nospaces}characters (excluding spaces)"
+        puts "#{word_count}words"
+        puts "#{sentence_count}sentences"
+        puts "#{paragraph_count}paragraphs"
+        puts "#{sentence_count / paragraph_count} sentences per paragraph (average)"
+        puts "#{word_count / sentence_count} words per sentence (average)"
+        puts "#{good_percentage} %of words are non-fluff words"
+        puts "Summary:\n\n" + ideal_sentences.join(".")
+        puts "--End of analysis"
+
+可以用其他文本来试试analyzer.rb,看看是否可以改进程序的功能
+
+#### 代码注释
+在我饿版本前面加上#符号的前缀,这些文本是注释(comments).
+
+## 4.5 小结
+在本章中,我们开发了一个完整,基础的应用程序,该程序有一组需求和所需功能--云云!
 

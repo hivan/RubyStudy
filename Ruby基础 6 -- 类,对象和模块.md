@@ -69,3 +69,84 @@
     puts area_of_triangle(6,6)
     puts perimeter_of_square(5)
 
+
+    my_square = Square.new(5)
+    my_triangle = Triangle.new(6, 6, 7.81, 7.81, 7.81)
+    puts my_square.area
+    puts my_square.perimeter
+    puts my_triangle.area
+    puts my_triangle.perimeter
+
+面向对象编程的基本优势在于,尽管在搭建代码时需要更多的结构,但非专家读者很容易理解类和对象的关系,也更容易维护和更新代码,以便适应实际生活的情况.
+
+## 6.2 面向对象基础知识
+我们回顾一下前面学到的类和对象的基础知识:
+类是对象的蓝图,我们只有一个名为Shape的类,但通过这个类可以创建多个形状实例,所有实例都有Shape类中定义的方法和属性.
+对象是类的实例(instance).如果类是Shape,则x=Shape.new创建了新的Shape实例,并将其赋值给变量x.然后就可以称x是个Shape对象,或是个Shape类的对象.
+
+### 局部变量,全局变量,对象变量和类变量
+在第二章中,我们创建了一些类,并想起中加入了一些方法,为了回顾,我们来看一下简单的例子:
+
+`6.2.1.rb`
+
+    class Square
+      def initialize(side_length)
+        @side_length = side_length
+      end
+
+      def area
+        @side_length * @side_length
+      end
+    end
+
+    a = Square.new(10)
+    b = Square.new(5)
+    puts a.area
+    puts b.area
+
+initialize接受由`Square.new(10)`传递过来的side_length参数,将10赋值给`@side_length`,`@`十分重要.要理解有些变量名之前有某种符号前缀的原因,需要理解变量有多种类型,例如局部变量,全局变量,对象变量和类变量.
+
+###### 局部变量
+
+    x = 10
+    puts x
+
+在Ruby中,这种基本变量称为局部变量(local variable),只能在变量定义的相同的地方使用.如果转而调用对象的方法,或调用自己的独立方法,则变量x不再跟你在一起,它的作用于(scope)被视为局部的,也就是说,它只在局部代码区域内出现:
+
+    def basic_method
+      puts x
+    end
+
+    x = 10
+    basic_method
+
+本例定义x等于10,然后跳转到basic_method的局部方法,如果用irb运行这段代码,将会出错:
+
+    NameError: undefined local variable or method `x' for main:Object
+      from (irb):2:in `basic_method'
+      from (irb):5
+      from /Users/Hivan/.rvm/rubies/ruby-1.9.3-p194/bin/irb:16:in `<main>'
+
+当跳转到basic_method的时候,不在处于创建变量x时所在的作用域,因为x是个局部变量,它只存在于定义的地方.为了避免这个问题,我们要只在直接用到局部变量的地方调用局部变量,这也正是其用途所在.
+
+    def basic_method
+      x = 50
+      puts x
+    end
+
+    x = 10
+    basic_method
+    puts x
+
+这个例子中,两个局部变量名字相同,但是处在不同的作用域中.说明局部变量只存在于它们原始的作用域,在主代码中,x设为10,然后在方法中把x设为50,但当你回到原始范围时,x仍然是10,basic_method方法中的变量x与方法外的变量x不是一回事.它们是两个不同的变量,分别处在各自的作作用域里.
+
+
+
+
+
+
+
+
+
+
+

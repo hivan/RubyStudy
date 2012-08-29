@@ -7,6 +7,10 @@
 
 本项目来自于一本Ruby教程,书名为**[Ruby从入门到精通]**,原作者为**Peter Cooper**, **仲田** 等翻译,我只是在学习的过程中将所学记录了下来.由于没有授权允许,所以还请各位不要擅自转载发布,只供参看学习.
 
+请记住,本书的所有源代码均可以从`http://www.apress.com`网站的SourceCode/Download功能区获得,因此不必严格要求直接输入书中的代码.
+
+除此之外,在学习过程中我也编写过一些代码块,源码可以从
+
 ### 本人联系方式
 * 博客:[hivan.me](http://hivan.me)
 * Twitter: [@hivan](https://twitter.com/)

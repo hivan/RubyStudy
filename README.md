@@ -9,7 +9,7 @@
 
 请记住,本书的所有源代码均可以从`http://www.apress.com`网站的SourceCode/Download功能区获得,因此不必严格要求直接输入书中的代码.
 
-除此之外,在学习过程中我也编写过一些代码块,源码可以从
+除此之外,在学习过程中我也编写过一些代码块,源码可以从[此处](https://github.com/hivan/RubyStudy/RubySource)查看!
 
 ### 本人联系方式
 * 博客:[hivan.me](http://hivan.me)

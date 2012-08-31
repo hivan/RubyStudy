@@ -140,6 +140,189 @@ initialize接受由`Square.new(10)`传递过来的side_length参数,将10赋值�
 
 这个例子中,两个局部变量名字相同,但是处在不同的作用域中.说明局部变量只存在于它们原始的作用域,在主代码中,x设为10,然后在方法中把x设为50,但当你回到原始范围时,x仍然是10,basic_method方法中的变量x与方法外的变量x不是一回事.它们是两个不同的变量,分别处在各自的作作用域里.
 
+###### 全局变量
+与局部变量直接相对的,Ruby还可以使用全局变量(global variables).它的名字很大程度上按时了,全局变量在程序的任何地方都可以访问,包括在类或对象中.
+
+全局变量很有用,但在Ruby中并不常用.它与面向对象变成的思想无法水乳交融,因为一旦在程序中使用全局变量,代码就可能会依赖于它们.面向对象变成有一个有用的能力,是能把逻辑代码块相互隔离,因此全局变量在此并不受欢迎.不过本书后边将会再次接触到全局变量,因此了解怎样构建全局变量,还是有用的.
+
+通过在变量名之前加上美元符号`$`,即可定义全局变量.如:
+
+    def basic_method
+      puts $x
+    end
+
+    $x = 10
+    basic_method
+
+$x被定义为全局变量,你可以再程序的任何地方调用它.
+
+###### 实例变量
+局部变量被限制于局部作用域,全局变量有全局作用域,而对象变量(object variable)的得名,是由于其作用域内置于,关连于当前对象.本节开头的Square类代码演示了这个概念:
+
+    class Square
+      def initialize(side_length)
+        @side_length = side_length
+      end
+
+      def area
+        @side_length * @side_length
+      end
+    end
+
+对象变量有个`@`符号前缀,在Square类中,把提供给类的side_length.赋值给`@Side_length`.而`@side_length`作为对象变量,即可在该对象的任何其他方法中访问.这就是area方法为何能调用@side_length.来计算该对象所代表的正方形的面积:
+
+    a = Square.new(10)
+    b = Square.new(5)
+    puts a.area
+    puts b.area
+
+两个正方形的面积计算结果是不同的,尽管计算面积的代码都是`@side_length * @side_length`.这是因为`@sode_length`是个对象变量,只关联于当前对象或实例.
+
+###### 类变量
+最后一种主要的变量类型是类变量(class variable).类变量的作用域处于整个类中,而不是处于该类的特定对象中.与对象变量的单个`@`符号相比,类变量以两个`@`符号作为前缀.
+
+对于存储与某类所有对象都相关的信息,类变量特别有用,例如,可以把目前为止某个类已创建的对象数目保存在类变量中:
+
+    class Square
+      def initialize
+        if defined?(@@number_of_squares)
+          @@number_of_squares += 1
+        else
+          @@number_of_squares = 1
+        end
+      end
+    end
+
+由于`@@number_of_squares`是个类变量,因此每次创建新对象时它已经存在(除了第一次,这正是检查它是否已经存在的原因,如果不存在,则向其赋予初始值1)
+
+###### 注: 用三元运算符简化代码:
+
+    @@number_of_squares = defined?(@@number_of_squares) ? @@number_of_squares + 1 : 1
+
+### 类方法和对象方法
+在Square类中,定义了两个方法:initialize和area.这两个方法都是对象方法,因为它们与对象相关,并直接对对象进行操作.
+
+    class Square
+      def initialize(side_length)
+        @side_length = side_length
+      end
+
+      def area
+        @side_length * @side_length
+      end
+    end
+
+当用s = Square.new(10)语句创建了正方形之后,即可用s.area语句得到s所代表的正方形的面积.area方法是Square类的所有对象都可以使用的方法,因此被视为对象方法.
+
+不过,方法并不只是在对象实例中有用,也可以直接对类本身操作.在上一节中,我们试用过类变量,来保存已经创建多少正方形对象的统计值,因此,以某种方式访问@@number_of_squares类变量,而非通过Square对象来访问,也是很有用处的.
+
+下面是类方法的简单示例:
+    
+    class Square
+      def self.test_method
+        puts "Hello from the Square class!"
+      end
+
+      def test_method
+        puts "Hello from an instance of class Square!"
+      end
+    end
+    Square.test_method
+    Square.new.test_method
+
+这个类有两个方法,尽管二者的名字想通,都是test_method,但是第一个是类方法,第二个是实例方法.二者的区别在于,类方法由self.前缀标示,这里self表示当前类,因此`defsele.test_method`定义的方法专用于该类.而没有前缀的方法,则自动称为实例方法.
+
+还可以用另外一种方式来定义类方法,如:
+
+    class Square
+      def Square.test_method
+        puts "Hello from the Square class!"
+      end
+    end
+
+用哪种分风格(ClassName.method_name或者self.method_name)来定义方法,取决于个人喜好.使用self.method_name方式不需要一次次重新声明类名,而用`ClassName.method_name`方式则更贴近以后对该方法的调用.
+
+###### 注: 本书以后会使用ClassName.method_name风格,但是你编写的时候可以用自己喜好的方式
+
+类方法提供了一种机制,可以很好的实现前文所述的"对象计数器"
+
+    class Square
+      def initialize
+        if defined?(@@number_of_squares)
+          @@number_of_squares += 1
+        else
+          @@number_of_squares = 1
+        end
+      end
+
+      def Square.count
+        @@number_of_squares
+      end
+    end
+
+    a = Square.new
+    puts Square.count
+    b = Square.new
+    puts Square.count
+    c = Square.new
+    puts Square.count
+
+在得到统计值时,根本没有引用`a, b, c`而是直接用的Square.count类方法.可以把这一操作看成是"请求类"做与整个类相关的事情.
+
+### 继承
+继承的好处在于,底层类拥有上层类的功能,也可以增加他们自由的功能.
+Ruby的继承功能同样简单,任何类都可以继承另一个类的功能特性,但是只能从单个类继承.多重类继承有可能造成混乱,各个类之间无穷尽的循环.
+
+我们来看一下继承在代码中的表现形式:
+
+    class ParentClass
+      def method1
+        puts "Hello from method1 in the parent class"
+      end
+
+      def method2
+        puts "Hello from method2 in the parent class"
+      end
+    end
+
+    class ChildClass < ParentClass
+      def method2
+        puts "Hello from method2 in the child class"
+      end
+    end
+
+    my_object = ChildClass.new
+    my_object.method1
+
+    my_object.method2 
+
+
+我们来看下边的情况,基本类代表了不同的人:
+
+
+    class Person
+      def initialize(name)
+        @name = name
+      end
+
+      def name
+        return @name
+      end
+    end
+
+    class Doctor < Person
+      def name
+        "Dr. " + super
+      end
+    end
+
+
+本例中,有个Person(人)类,实现存储和返回人名的基本功能.Doctor(医生)类继承自Person类,并覆写其name方法.再医生的name方法中,返回以"Dr."开头,后跟正常姓名的字符串.这里使用了super
+
+
+
+
+
 
 
 

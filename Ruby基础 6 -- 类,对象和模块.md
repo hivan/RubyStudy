@@ -582,30 +582,480 @@ Ruby支持封闭的第三种形式,名为protected,它让方法称为私有的,�
 ### 嵌套类
 在Ruby中,可以把类放入其他类之中,这样的类称为嵌套(nested)类,如果某个类依赖于其他类,而这些其他类仅在此处有用,在其他地方无用,在这样的情况下,嵌套类就很有用.如果想把类划分为类组,而不是哥哥独立时,嵌套类也很有用:
 
+    class Drawing
+      class Line
+      end
 
+      class Circle
+      end
+    end
 
+嵌套类与普通类的定义方法完全相同,但是用法不同.
 
+在Drawing类中,可以直接访问Line和Circle类,但在Drawing类之外,则只能以Drawing::Line和Drawing::Circle的形式访问Line和Circle:
 
+    class Drawing
+      def Drawing.give_me_a_circle
+        Circle.new
+      end
 
+      class Line
+      end
 
+      class Circle
+        def what_am_i
+          "This is a circle"
+        end
+      end
+    end
 
+    a = Drawing.give_me_a_circle
+    puts a.what_am_i
+    a = Drawing::Circle.new
+    puts a.what_am_i
+    a = Circle.new
+    puts a.what_am_i
 
+`a = Drawing.give_me_a_circle`调用了`give_me_a_circle`类方法,返回`Drawing::Circle`的新实例,下一步, `a = Drawing::Circle.new`直接得到`Drawing::Circle`的新实例,而`a = Circle.new`并未成功,因为Circle类不存在.这是由于Circle是Drawing之下的嵌套类,只能以`Drawing::Circle`的形式为人所知.
 
+### 常量的作用域
+常量的值在程序范围内永不变更,例如:
 
+    def circumference_of_circle(radius)
+      2 * Pi * radius
+    end
 
+    Pi = 3.141592
+    puts circumference_of_circle(10)
 
+在这种意义下,常量似乎与全局变量很像,但却不是.常量定义在当前类的作用域内,除非被覆写,否则所有子类均可访问:
 
+    Pi = 3.141592
+    class OtherPlanet
+      Pi = 4.5
 
+      def OtherPlanet.circumference_of_circle(radius)
+        radius * 2 * Pi
+      end
+    end
 
+    puts OtherPlanet.circumference_of_circle(10)
+    puts OtherPlanet::Pi
+    puts Pi
 
+<h4 style="color:red">注: 从这里向下,不会写的那么详细了,因为时间上不够用!请见谅.</h4>
 
+## 模块, 命名空间和掺入
+模块提供一种结构,用来把Ruby类,方法和常量收集到单独命名和定义的单元中.这样可以避免与现有类,方法和常量发生冲突,而且还可以把模块的功能增加(掺入)到自己的类中.
 
+### 命名空间
+Ruby中经常使用的一种功能就是把其他文件中代码包含到当前程序的能力.当包含其他文件时,很快会碰到冲突:
 
+    def random
+      rand(1000000)
+    end
 
+    puts random
 
+random方法返回0~999,999之间的一个随机数字.该方法可能位于某个很容易遗忘的外部文件中,这样以来,如果用require包含的另一个文件中实现了如下所示的同名方法,就会发生问题:
 
+    def random
+      (rand(26) + 65).chr
+    end
 
+这个random方法返回随机的大写字符
 
+现在你有两个方法都叫random.
+
+    require 'number_stuff'
+    require 'letter_stuff'
+
+    puts random
+
+究竟是哪个版本的random方法被调用?
+
+###### 注：require是Ruby语句，用来载入其他文件包含的代码。
+
+这种情况被称为命名冲突（name conflict),它甚至可能发生在比上面代码所示的简单示例更可怕的情况中。例如，类名可能同样发生冲突，你会无意中把两个同名类混杂在一起。如果名维Song的类定义在某个外部文件中，然后在另一个外部文件中也定义同名的类，那么在你的程序中，Song类将会是二者乱七八糟的混合体。
+
+模块有助于解决这些冲突，它提供了命名空间，柯伊包含任何数量的类，方法和常量，并允许直接引用它们：
+
+    module NumberStuff
+      def NumberStuff.random
+        rand(10000000)
+      end
+    end
+
+    module LetterStuff
+      def LetterStuff.random
+        (rand(26) + 65).chr
+      end
+    end
+
+    puts NumberStuff.random
+    puts LetterStuff.random
+
+###### 注： 输出结果会有所不同
+
+模块无法定义实例，因为它们不是真正的类，而且它们不能丛任何事物继承。模块只提供了把方法，类和常量组织到单独命名空间的途径。
+
+    module ToolBox
+      class Ruler
+        attr_accessor :length
+      end
+    end
+
+    module Country
+      class Ruler
+        attr_accessor :name
+      end
+    end
+
+    a = ToolBox::Ruler.new
+    a.length = 50
+    b = Country::Ruler.new
+    b.name = "Ghengis Khan from Moskau"
+
+    puts a.length
+    puts b.name
+
+这里并没有发生两个Ruler（尺子）类争夺控制权，或最终形成一个变异的Ruler类，例如，即包含name属性也包含length属性的变异Ruler类（有多少计量用的尺子有名字？），而是把两个Ruler类分别放在ToolBox和Country命名空间中。
+
+### 掺入
+在前文中，我们研究了继承：它是面向对象的一个功能特性，允许类（及其实例对象）从其他类中继承方法。你会发现，Ruby不支持多重继承（multiple inheritance），即同时从多个类中继承的能力。Ruby的继承功能只允许你创建简单的类树，避免了多重继承系统天生的混乱。
+
+不过，在某些情况下，从迥然不同的类中共享功能，也是件很有用的事。从这种意义上，模块象某种“超级”类，可被包含到其他类中，用模块提供的功能来扩展其他类：
+
+    module UsefulFeatures
+      def class_name
+        self.class.to_s
+      end
+    end
+
+    class Person
+      include UsefulFeatures
+    end
+
+    x = Person.new
+    puts x.class_name
+
+在这段代码中，UsefulFeatures模块看起来几乎就是个类，而且确实几乎就是。不过，模块本身是组织工具，而不是类，class_name方法位于模块中，因此随即被包含到Person类中。
+
+    module AnotherModule
+      def do_stuff
+        puts "This is a test"
+      end
+    end
+
+    include AnotherModule
+    do_stuff
+
+Ruby自带了几个标准模块，例如｀Kernel'模块包含所有“标准”命令，在Ruby中使用时无须指定对象或类，例如load，require，exit，puts和eval。
+
+这里介绍其中的两个模块，分别是Enumerable和Comparable。
+
+##### Enumerable模块
+迭代操作：
+`[1, 2, 3, 4, 5].each {|number| puts number}`
+
+    my_array = %w{this is a test of the longest word check}
+    longest_word = ''
+    my_array.each do |word|
+      longest_word = word if longest_word.length < word.length
+    end
+    puts longest_word
+
+在本例中，循环遍历`my_array`， 如果当前已知的最长单词比word的长度更短，则将其赋值给`longest_word`，当循环结束时，最长的单词存放在`longest_word`中。
+相同的代码可以调整一下，来找出一组数字中最大（或最小）的数字：
+
+    my_array = %w{10 56 92 3 49 588 18}
+    # highest_number = 0
+    # my_array.each do |number|
+    #   number = number.to_i
+    #   highest_number = number if number > highest_number
+    # end
+    # puts highest_number
+
+    small_number = my_array.length
+    my_array.each do |number|
+      number = number.to_i
+      small_number = number if number < small_number
+    end
+    puts small_number
+
+不过，Array类预先包含了`Enumerable`模块的方法，这个模块中提供了大于20个有用的统计和迭代相关的方法，包括`collect，detect，find，find_all, include?, max, min, select, sort和to_a`。所有这些方法豆使用了Array类的each方法来完成其工作，如果你的类要实现each方法，则可以包含Enumerable模块，即可在你自己的类中，免费得到所有这些方法。
+
+###### 注：Enumerable模块提供的主要方法以后会天假附录B.届时会提供相应连接。
+
+    [1, 2, 3, 4].collect {|i| i.to_s + "x"}
+
+    [1, 2, 3, 4].detect {|i| i.between?(2,3)}
+
+    [1, 2, 3, 4].select {|i| i.between?(2,3)}
+
+    [4, 1, 3, 2].sort
+
+    [1, 2, 3, 4].max
+
+    [1, 2, 3, 4].min
+
+你也可以创建自己的类，实现each方法，并“免费”得到这些方法：
+
+    class AllVowels
+      @@vowels = %w{a e i o u}
+      def each
+        @@vowels.each {|v| yield v}
+      end
+    end
+
+    x = AllVowels.new
+    x.each {|v| puts v}
+
+实际上，这个类不需要提供多个对象，因为它只对元音字母进行枚举。不过，为了保持示例的简单性，这是个理想的例子。
+
+我们让Enumerable模块也参与其中：
+
+    class AllVowels
+      include Enumerable
+
+      @@vowels = %w{a e i o u}
+      def each
+        @@vowels.each {|v| yield v}
+      end
+    end
+
+现在我们再次试着使用Enumerable模块提供的方法。首先我们得到AllVowels对象：
+
+    x = AllVowels.new
+    x.collect {|i| i + "x"}
+    x.detect {|i| i > "j"}
+    x.select {|i| i > "j"}
+    x.sort
+    x.max
+    x.min
+
+##### Comparable模块
+Comparable模块提供了很多方法，为其他类提供了比较运算符，例如<, <=, ==, >=和>，还有between？方法，当某值在指定的两个参数之间（包含参数值本身）时，则返回true（例如4.between?(3,10) == true)。
+
+为了提供这些方法，对于包含Comparable模块的类，Comparable模块对该类使用了<=>运算符。如果对象的值小于指定参数，则返回－1；如果等于，则返回0；如果大于，则返回1.
+
+    class Song
+      include Comparable
+
+      attr_accessor :length
+      def <=>(other)
+        @length <=> other.length
+      end
+
+      def initialize(song_name, length)
+        @song_name = song_name
+        @length = length
+      end
+
+    end
+
+    a = Song.new('Rock around the clock', 143)
+    b = Song.new('Bohemian Rhapsody', 544)
+    c = Song.new('Minute Waltz', 60)
+
+    a < b
+    b >= c
+    c > a
+    a.between?(b,c)
+
+##### 通过命名空间和类进行掺入
+
+    module ToolBox
+      class Ruler
+        attr_accessor :length
+      end
+    end
+
+    module Country
+      class Ruler
+        attr_accessor :name
+      end
+    end
+
+    a = ToolBox::Ruler.new
+    a.length = 50
+    b = Country::Ruler.new
+    b.name = "Ghengis Khan of Moskau"
+
+现在临时假设Ruler就是Country::Ruler，那么要访问任何其他Ruler类就得直接引用，此时该怎么办？ include命令可以实现这一效果。
+
+    include Country
+    c = Ruler.new
+    c.name = "King Henry VIII"
+
+Country模块的内容被带入当前访问作用域，还可以把Ruler当成本地类来使用。如果想使用ToolBox中呃Ruler类，仍可以直接用ToolBox::Ruler来引用。
+
+## 6.4 用对象构建“地下城”文本冒险游戏
+### 地下城的概念
+进行类的开发之前，需要明白要对什么建模。地下城游戏一点也不复杂，但至少要处理以下概念：
+* 地下城：需要一个一般类，用来封装地下城游戏的完整概念。
+* 玩家：玩家提供你与地下城之间的连接，地下城游戏的所有体验都由玩家而来。玩家可以再地下城的各个房间之间来回移动。
+* 房间：地下城呃房间供玩家再其间移动。各房间之间以多种形式连接，并由相应描述。
+
+完整的冒险游戏还应该由物品，敌人，其他角色，路点，咒语，以及各种谜题和结果的出发事件。
+
+### 创建初始类
+我们要开发的第一个概念，是地下城和游戏本身。再这一框架内，在引入其他概念，例如玩家和房间：
+
+    # 使用嵌套类，初始代码布局如下：
+    class Dungeon
+      attr_accessor :player
+      def initialize(player_name)
+        @palyer = Player.new(palyer_name)
+        @rooms = []
+      end
+
+      class Player
+        attr_accessor :name, :location
+        def initialize(player_name)
+          @name = player_name
+        end
+      end
+
+      class Room
+        attr_accessor :reference, :name, :description, :connections
+
+        def initialize(reference, name, description, connections)
+          @reference = reference
+          @name = name
+          @description = description
+          @connections = connections
+        end
+      end
+    end
+
+Dungeon类封装了所有其他类，这一核心概念把所有东西都绑定再一起，因为在此情况下，如果没有Dungeon的包裹，Player和Room类就没有任何用处。这并不是说，依赖于其他类de类必须嵌套，只是再此情况下，用这种方式来组织类是有道理的。
+
+现在，地下城游戏有几个实例变量，分别保存玩家和房间的清单（@rooms = []创建了空Array，它与@rooms = Array.new同义）。
+
+    my_dungeon = Dungeon.new("Fred Bloggs")
+    puts my_dungeon.player.name
+
+通过穿越地下城对象，可以直接访问玩家的功能。因为@player包含player对象，而且通过`attr_accessor` `:player`, `@player`已经被设置为公共可访问的，因此你得到了完全的访问权限。
+
+### Structs：快捷简单的数据类
+目前代码比较重复，Room和Player类只是作为基本的数据占位区，没有逻辑和功能。再Ruby中又一种更简单的方法，用一行名为Struce的类代码就可以创建这类专用于保存数据的特殊类。
+结构是一种特殊类，其唯一职能就是拥有属性，保存数据：
+
+    Person = Struct.new(:name, :gender, :age)
+    fred = Person.new("Fred", "male", 50)
+    chris = Person.new("Chris", "male", 25)
+    puts fred.age + chris.age
+
+第一行代码创建了名为`Person`的新类，第二行代码创建了Person类的新实例，并在运行过程中设置属性。第一行代码等同于一下这段冗长的内容：
+
+    class Person
+      attr_accessor :name, :gender, :age
+
+      def initialize(name, gender, age)
+        @name = name
+        @gender = gender
+        @age = age
+      end
+    
+
+###### 注：其实这段代码不完全等同于struce代码，因为再初始化Struct类时，参数是可选的，而上述Person类代码需要提供三个参数（name，gender和age）。
+
+这段代码创建Person类的方式比较冗长。如果只需要存储数据，那么struct技术更快捷更易读，当然，如果最终要向这个类增加更多功能，以冗长方式创建类就是值得的。不过，可以在开始时使用struct方式，然后在需要的时候重写完整的类。
+
+    class Dungeon
+      attr_accessor :player
+
+      def initialize(player_name)
+        @player = Player.new(player_name)
+        @rooms = []
+      end
+
+      Player = Struct.new(:name, :location)
+      Room = Struct.new(:reference, :name, :description, :connections)
+    end
+
+这样简短了，由于在创建Struct类的实例时，参数是可选的，因此仍然可以用Player.new(player_name)的方式，location属性只被设为nil。如果需要向Player或Room中增加方法，可以将其重写为普通类，并用`attr_accessor`把属性加回来。
+
+> <h4 style="color:red; solid:bold">属性读写权限设置器(attr_accessor)</h4>
+
+> 和第二章一样，在本章的代码中，类中使用了attr_accessor来为对象提供属性。用attr_accessor可以这样做：
+
+>     class Person
+        attr_accessor :name :age
+      end
+      x = Person.new
+      x.name = "Fred"
+      x.age = 10
+      puts x.name, x.age
+
+> 但是实际上，attr_accessor并没有做什么魔术处理，它只是帮你写了一些代码，以下这段代码等同于上面Person类中的单行代码`attr_accessor :name, :age`
+
+>     class Person
+        def name
+          @name
+        end
+        def name = (name)
+          @name = name
+        end
+        def age
+          @age
+        end
+        def age = (age)
+          @age = age
+        end
+      end
+
+> 这段代码定义了name和age方法，用来返回当前对象变量的相应属性，因此可以调用x.name和x.age（和前面的代码一样）。这段代码还定义了两个“写属性方法”，为@name和@age对象变量赋值。
+
+> 如果你注意写属性方法的名字，会发现它们与读属性方法的名字相同，只是加了“＝”后缀，哲表示可以用诸如`x.name = "Fred"` 和 `x.age  = 10`这样的代码。在Ruby中，赋值正是对常规方法的调用！事实上，`x.name = "Fred"`只是x.name = ("Fred")的缩写。
+
+### 创建房间
+我来向Dungeon类增加方法：
+
+    class Dungeon
+      def add_room(reference, name, description, connections)
+        @rooms << Room.new(reference, name, description, connections)
+      end
+    end
+
+我们想做的是向地下城增加房间，因此向地下城对象增加方法是最合理的。这样一来，可以用下面的方法来创建房间（当然，是在my_dungeon已经定义好的前提下）：
+
+    my_dungeon.add_room(:largecave, "Large Cave", "a large cavernous cave", {:west => :smallcave})
+    my_dungeon.add_room(:smallcave, "Small Cave", "a small, claustrophobic cave", {:east => :largecave})
+
+add_room方法接受reference（引用），name（名字），description（说明），connections（连接）参数，用它们来创建新的Room对象，然后把这个对象放到@rooms数组的末尾。
+
+connections 参数接受一个散列表，其中内容是某个特定房间与其他房间的连接。例如，{:west => :smallcave}把两个符号(:west和:smallcave)连接到一起。地下城代码通过该连接把房间连接起来，根据{:west => :smallcave, :south => :another_room} 这样的连接散列表，将创建两个连接（一个指向西方，一个指向南方）。
+
+### 让地下城运转起来
+现在已经把所有房间载入到基本的地下城中了（并且只要愿意，可以用add_room方法增加更多的房间），但还没有办法启动地下城游戏本身。
+
+第一步是在Dungeon中创建一个方法，把用户放到地下城中，并给出初始位置的说明，从而“启动”整个游戏：
+
+    class Dungeon
+      def start(location)
+        @player.location = location
+        show_current_description
+      end
+
+      def show_current_description
+        puts find_room_in_dungeon(@player.location).full_description
+      end
+
+      def find_room_in_dungeon(reference)
+        @rooms.detect{|room| room.reference == reference }
+      end
+
+      class Room
+        def full_description
+          @name + "\n \nYou are in " + @description
+        end
+      end
+    end
+
+下面列出到目前为止的完整代码，以及把Room变为常规类的变化内容，和用于辅助地下城漫游的一些额外方法：
+`代码详见6.4.all.rb,不过代码似乎有点问题，总是出现模块错误。已经按照书本完全对照，暂时找不出错误。以后对Ruby理解的更透彻了再回头来找这里的错误`
 
 
 

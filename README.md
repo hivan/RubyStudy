@@ -11,6 +11,8 @@
 
 除此之外,在学习过程中我也编写过一些代码块,源码可以从[此处](https://github.com/hivan/RubyStudy/tree/master/RubySource)查看!
 
+因为所学内容涉及过多,一个文件夹无法整理源文件,所以分开放了!还请进入学习项目本身后查看source文件夹查找代码文件.
+
 ### 本人联系方式
 * 博客:[hivan.me](http://hivan.me)
 * Twitter: [@hivan](https://twitter.com/)

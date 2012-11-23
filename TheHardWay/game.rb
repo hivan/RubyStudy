@@ -1,0 +1,1 @@
+require "./ex42_game.rb"
